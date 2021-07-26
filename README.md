@@ -41,9 +41,9 @@ every item on the server enhancing the performance greatly.
 
 ```json
 {
-  "MaxLimitDefault": "You have reached the Default maximum cupboard limit of  <count>",
-  "MaxLimitVip": "You have reached the Vip maximum cupboard limit of  <count>",
-  "Remaining": "Amount of TC's remaining =  <count>"
+  "MaxLimitDefault": "You have reached the Default maximum cupboard limit of <count>",
+  "MaxLimitVip": "You have reached the Vip maximum cupboard limit of <count>",
+  "Remaining": "Amount of TC's remaining = <count>"
 }
 ```
 
