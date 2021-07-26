@@ -50,5 +50,5 @@ every item on the server enhancing the performance greatly.
 The ` <count>` keyword will be replaced by the amount of TC.
 
 ## Credits 
-**BuzZ** The original author
-**Spiikesan** Maintainer (> v1.3.0)
+- **BuzZ** The original author
+- **Spiikesan** Maintainer (> v1.3.0)
