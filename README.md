@@ -9,12 +9,11 @@
 ## Performance Update
 Instead of triggering on each placement and checking each prefab placement it will now do the following.
 
-* On startup checks the entity (Toolcupboards) and adds it to a list and gives its own id nr
-* This is now linked between the players id and toolcupboard id
-* On destroy removes the id from the toolcupboard list
+* On startup, all tool cupboards instances IDs are added to a list, linked to players ids
+* On destroy removes the id from the toolcupboard list of the player.
 * On new placement ads the id.
 
-In this way the trigger for *OnEntitySpawned* will search in the toolcupboard list instead of
+In this way the trigger for *OnEntitySpawned* will search in the player's toolcupboard list instead of
 every item on the server enhancing the performance greatly.
 
 ## Permissions
