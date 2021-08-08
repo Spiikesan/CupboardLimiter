@@ -27,7 +27,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.3.0")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.3.1")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -40,6 +40,9 @@ namespace Oxide.Plugins
         const string Vip_Perm = "cupboardlimiter.vip";
         const string Bypass_Perm = "cupboardlimiter.bypass";
 
+        string Message_MaxLimitDefault = "MaxLimitDefault";
+        string Message_MaxLimitVip = "MaxLimitVip";
+        string Message_Remaining = "Remaining";
 
         Dictionary<ulong, List<int>> TCIDs = new Dictionary<ulong, List<int>>();
         private int TCCount(BasePlayer player)
@@ -84,6 +87,7 @@ namespace Oxide.Plugins
 
         void Init()
         {
+            Puts("########## Init");
             if (!LoadConfigVariables())
             {
                 Puts("Config file issue detected. Please delete file, or check syntax and fix.");
@@ -147,18 +151,23 @@ namespace Oxide.Plugins
         #region LanguageAPI
         protected override void LoadDefaultMessages()
         {
+            Message_MaxLimitDefault += "_" + Version;
+            Message_MaxLimitVip += "_" + Version;
+            Message_Remaining += "_" + Version;
+
+            Puts("########## LoadDefaultMessages");
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                ["MaxLimitDefault"] = "You have reached the Default maximum cupboard limit of <count>",
-                ["MaxLimitVip"] = "You have reached the Vip maximum cupboard limit of <count>",
-                ["Remaining"] = "Amount of TC's remaining = <count>",
+                [Message_MaxLimitDefault] = "You have reached the Default maximum cupboard limit of {0}",
+                [Message_MaxLimitVip] = "You have reached the Vip maximum cupboard limit of {0}",
+                [Message_Remaining] = "Amount of TC's remaining = {0}",
             }, this, "en");
 
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                ["MaxLimitDefault"] = "Vous avez atteint la limite par défaut de <count> pour les armoires à outils.",
-                ["MaxLimitVip"] = "Vous avez atteint la limite VIP de <count> pour les armoires à outils.",
-                ["Remaining"] = "Il vous reste <count> armoires à outil à placer.",
+                [Message_MaxLimitDefault] = "Vous avez atteint la limite par défaut de {0} pour les armoires à outils.",
+                [Message_MaxLimitVip] = "Vous avez atteint la limite VIP de {0} pour les armoires à outils.",
+                [Message_Remaining] = "Il vous reste {0} armoires à outil à placer.",
             }, this, "fr");
         }
 
@@ -168,6 +177,7 @@ namespace Oxide.Plugins
 
         void OnServerInitialized()
         {
+            Puts("########## OnServerInitialized");
             if (!configData.Discord.DiscordWebhookAddress.Contains("discord.com/api/webhooks"))
             {
                 Puts("Warning !!\n----------------------------------\nNo Webhook has been assigned yet !\n----------------------------------");
@@ -261,7 +271,7 @@ namespace Oxide.Plugins
                         });
                     }
                     else
-                        SendReply(player, lang.GetMessage("Remaining", this).Replace("<count>", (limit - count).ToString()));
+                        SendReply(player, FormatMessage(Message_Remaining, player.UserIDString, (limit - count).ToString()));
                 }
             }
             return;
@@ -285,11 +295,11 @@ namespace Oxide.Plugins
 
             if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
             {
-                SendReply(player, lang.GetMessage("MaxLimitVip", this).Replace("<count>", configData.Limits.VipLimit.ToString()));
+                SendReply(player, FormatMessage(Message_MaxLimitVip, player.UserIDString, configData.Limits.VipLimit.ToString()));
             }
             else if (permission.UserHasPermission(player.UserIDString, Default_Perm))
             {
-                SendReply(player, lang.GetMessage("MaxLimitDefault", this).Replace("<count>", configData.Limits.DefaultLimit.ToString()));
+                SendReply(player, FormatMessage(Message_MaxLimitDefault, player.UserIDString, configData.Limits.DefaultLimit.ToString()));
             }
 
             TC.KillMessage();
@@ -299,6 +309,11 @@ namespace Oxide.Plugins
 
         public void Callback(int code, string response)
         {
+        }
+
+        public string FormatMessage(string messageId, string userId, params string[] parameters)
+        {
+            return string.Format(lang.GetMessage(messageId, this, userId), parameters);
         }
 
         #endregion

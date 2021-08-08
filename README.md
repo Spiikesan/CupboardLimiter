@@ -40,13 +40,13 @@ every item on the server enhancing the performance greatly.
 
 ```json
 {
-  "MaxLimitDefault": "You have reached the Default maximum cupboard limit of <count>",
-  "MaxLimitVip": "You have reached the Vip maximum cupboard limit of <count>",
-  "Remaining": "Amount of TC's remaining = <count>"
+  "MaxLimitDefault": "You have reached the Default maximum cupboard limit of {0}",
+  "MaxLimitVip": "You have reached the Vip maximum cupboard limit of {0}",
+  "Remaining": "Amount of TC's remaining = {0}"
 }
 ```
 
-The ` <count>` keyword will be replaced by the amount of TC.
+The `{0}` placeholder will be replaced by the amount of TC.
 
 ## Credits 
 - **BuzZ** The original author
