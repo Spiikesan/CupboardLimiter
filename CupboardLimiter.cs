@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using Oxide.Core.Plugins;
 using Oxide.Core.Libraries;
 using Newtonsoft.Json;
+using Oxide.Core.Libraries.Covalence;
+using UnityEngine;
 
 #region Changelogs and ToDo
 /**********************************************************************
@@ -27,7 +29,7 @@ using Newtonsoft.Json;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.3.1")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.4.0")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -39,15 +41,20 @@ namespace Oxide.Plugins
         const string Default_Perm = "cupboardlimiter.default";
         const string Vip_Perm = "cupboardlimiter.vip";
         const string Bypass_Perm = "cupboardlimiter.bypass";
+        const string Admin_Perm = "cupboardlimiter.admin";
 
         string Message_MaxLimitDefault = "MaxLimitDefault";
         string Message_MaxLimitVip = "MaxLimitVip";
         string Message_Remaining = "Remaining";
+        string Message_NoPermission = "NoPermission";
+        string Message_Inspect = "cInspect";
+        string Message_InspectUsage = "cInspectUsage";
+        string Message_InspectNotFound = "cInspectNotFound";
 
-        Dictionary<ulong, List<int>> TCIDs = new Dictionary<ulong, List<int>>();
+        Dictionary<ulong, List<BuildingPrivlidge>> TCIDs = new Dictionary<ulong, List<BuildingPrivlidge>>();
         private int TCCount(BasePlayer player)
         {
-            List<int> tcs;
+            List<BuildingPrivlidge> tcs;
 
             if (TCIDs.TryGetValue(player.userID, out tcs))
             {
@@ -56,9 +63,9 @@ namespace Oxide.Plugins
             return 0;
         }
 
-        private void TCAdd(ulong playerId, int tcId)
+        private void TCAdd(ulong playerId, BuildingPrivlidge tcId)
         {
-            List<int> tcs;
+            List<BuildingPrivlidge> tcs;
             if (TCIDs.TryGetValue(playerId, out tcs))
             {
                 if (!tcs.Contains(tcId))
@@ -66,15 +73,15 @@ namespace Oxide.Plugins
             }
             else
             {
-                tcs = new List<int>();
+                tcs = new List<BuildingPrivlidge>();
                 tcs.Add(tcId);
                 TCIDs.Add(playerId, tcs);
             }
         }
 
-        private void TCDel(ulong playerId, int tcId)
+        private void TCDel(ulong playerId, BuildingPrivlidge tcId)
         {
-            List<int> tcs;
+            List<BuildingPrivlidge> tcs;
             if (TCIDs.TryGetValue(playerId, out tcs))
             {
                 tcs.Remove(tcId);
@@ -87,7 +94,6 @@ namespace Oxide.Plugins
 
         void Init()
         {
-            Puts("########## Init");
             if (!LoadConfigVariables())
             {
                 Puts("Config file issue detected. Please delete file, or check syntax and fix.");
@@ -96,6 +102,7 @@ namespace Oxide.Plugins
             permission.RegisterPermission(Default_Perm, this);
             permission.RegisterPermission(Vip_Perm, this);
             permission.RegisterPermission(Bypass_Perm, this);
+            permission.RegisterPermission(Admin_Perm, this);
 
             if (debug) Puts($"Debug is activated check CupboardLimiter.cs file if not intended");
         }
@@ -151,23 +158,26 @@ namespace Oxide.Plugins
         #region LanguageAPI
         protected override void LoadDefaultMessages()
         {
-            Message_MaxLimitDefault += "_" + Version;
-            Message_MaxLimitVip += "_" + Version;
-            Message_Remaining += "_" + Version;
-
-            Puts("########## LoadDefaultMessages");
             lang.RegisterMessages(new Dictionary<string, string>
             {
                 [Message_MaxLimitDefault] = "You have reached the Default maximum cupboard limit of {0}",
                 [Message_MaxLimitVip] = "You have reached the Vip maximum cupboard limit of {0}",
                 [Message_Remaining] = "Amount of TC's remaining = {0}",
+                [Message_NoPermission] = "You don't have the permission.",
+                [Message_Inspect] = "The user {0} have {1} TCs.",
+                [Message_InspectUsage] = "Usage: /{0} <userNameOrId>",
+                [Message_InspectNotFound] = "Error: User not found",
             }, this, "en");
 
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                [Message_MaxLimitDefault] = "Vous avez atteint la limite par défaut de {0} pour les armoires à outils.",
-                [Message_MaxLimitVip] = "Vous avez atteint la limite VIP de {0} pour les armoires à outils.",
-                [Message_Remaining] = "Il vous reste {0} armoires à outil à placer.",
+                [Message_MaxLimitDefault] = "Vous avez atteint la limite par defaut de {0} pour les armoires a outils.",
+                [Message_MaxLimitVip] = "Vous avez atteint la limite VIP de {0} pour les armoires a outils.",
+                [Message_Remaining] = "Il vous reste {0} armoires a outil a placer.",
+                [Message_NoPermission] = "Vous n'avez pas la permission",
+                [Message_Inspect] = "Le joueur {0} a {1} TCs.",
+                [Message_InspectUsage] = "Usage: /{0} <nomJoueurOuId>",
+                [Message_InspectNotFound] = "Erreur: Le joueur n'a pas ete trouve.",
             }, this, "fr");
         }
 
@@ -177,7 +187,6 @@ namespace Oxide.Plugins
 
         void OnServerInitialized()
         {
-            Puts("########## OnServerInitialized");
             if (!configData.Discord.DiscordWebhookAddress.Contains("discord.com/api/webhooks"))
             {
                 Puts("Warning !!\n----------------------------------\nNo Webhook has been assigned yet !\n----------------------------------");
@@ -191,7 +200,7 @@ namespace Oxide.Plugins
             {
                 if (TC.OwnerID.IsSteamId())
                 {
-                    TCAdd(TC.OwnerID, TC.GetInstanceID());
+                    TCAdd(TC.OwnerID, TC);
                 }
             }
             if (debug)
@@ -213,11 +222,13 @@ namespace Oxide.Plugins
             }
         }
 
-        void OnEntitySpawned(BaseEntity TC, UnityEngine.GameObject gameObject)
+        void OnEntitySpawned(BaseEntity entity, UnityEngine.GameObject gameObject)
         {
-            if (TC is BuildingPrivlidge && TC.OwnerID.IsSteamId())
+            BuildingPrivlidge TC = entity as BuildingPrivlidge;
+
+            if (TC != null && TC.OwnerID.IsSteamId())
             {
-                TCAdd(TC.OwnerID, TC.GetInstanceID());
+                TCAdd(TC.OwnerID, TC);
 
                 if (debug) Puts($"a cupboard is spawning in world. It's ID is {TC.GetInstanceID()} and owner {TC.OwnerID}");
 
@@ -271,17 +282,70 @@ namespace Oxide.Plugins
                         });
                     }
                     else
-                        SendReply(player, FormatMessage(Message_Remaining, player.UserIDString, (limit - count).ToString()));
+                        SendReply(player, FormatMessage(Message_Remaining, player.UserIDString, limit - count));
                 }
             }
             return;
         }
 
-        void OnEntityKill(BaseEntity TC)
+        void OnEntityKill(BaseEntity entity)
         {
+            BuildingPrivlidge TC = entity as BuildingPrivlidge;
+
             if (TC is BuildingPrivlidge && TC.OwnerID.IsSteamId())
             {
-                TCDel(TC.OwnerID, TC.GetInstanceID());
+                TCDel(TC.OwnerID, TC);
+            }
+        }
+
+        #endregion
+
+        #region Chat Commands
+
+        [ChatCommand("clinspect")]
+        private void ChatCommand_Inspect(BasePlayer player, string command, string[] args)
+        {
+            if (permission.UserHasPermission(player.UserIDString, Admin_Perm))
+            {
+                if (args.Length >= 1)
+                {
+                    var user = covalence.Players.FindPlayer(args[0]);
+                    ulong userID;
+
+                    if (user is IPlayer)
+                    {
+                        if (ulong.TryParse(user.Id, out userID))
+                        {
+                            List<BuildingPrivlidge> tcs;
+
+                            if (TCIDs.TryGetValue(userID, out tcs))
+                            {
+                                string msg = FormatMessage(Message_Inspect, player.UserIDString, user.Name, tcs.Count());
+                                foreach (var TC in tcs)
+                                {
+                                    msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
+                                }
+                                SendReply(player, msg);
+                            }
+                            else
+                            {
+                                SendReply(player, FormatMessage(Message_Inspect, player.UserIDString, user.Name, 0));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        SendReply(player, FormatMessage(Message_InspectNotFound, player.UserIDString));
+                    }
+                }
+                else
+                {
+                    SendReply(player, FormatMessage(Message_InspectUsage, player.UserIDString, command));
+                }
+            }
+            else
+            {
+                SendReply(player, FormatMessage(Message_NoPermission, player.UserIDString));
             }
         }
 
@@ -295,11 +359,11 @@ namespace Oxide.Plugins
 
             if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
             {
-                SendReply(player, FormatMessage(Message_MaxLimitVip, player.UserIDString, configData.Limits.VipLimit.ToString()));
+                SendReply(player, FormatMessage(Message_MaxLimitVip, player.UserIDString, configData.Limits.VipLimit));
             }
             else if (permission.UserHasPermission(player.UserIDString, Default_Perm))
             {
-                SendReply(player, FormatMessage(Message_MaxLimitDefault, player.UserIDString, configData.Limits.DefaultLimit.ToString()));
+                SendReply(player, FormatMessage(Message_MaxLimitDefault, player.UserIDString, configData.Limits.DefaultLimit));
             }
 
             TC.KillMessage();
@@ -311,9 +375,38 @@ namespace Oxide.Plugins
         {
         }
 
-        public string FormatMessage(string messageId, string userId, params string[] parameters)
+        public string FormatMessage(string messageId, string userId, params object[] parameters)
         {
             return string.Format(lang.GetMessage(messageId, this, userId), parameters);
+        }
+
+        private string GetCoordinates(Vector3 position)
+        {
+            const float CELL_SIZE = 150f;
+            Vector3 realPos = position - TerrainMeta.Transform.position; //Getting the real position in the "player map"
+            realPos.z = TerrainMeta.Size.z - realPos.z; //Top is 0, we need to invert Z axis
+
+            Vector3 error = new Vector3(-90f, 0f, -90f);
+            Vector3 correction = new Vector3(
+                error.x * (realPos.x / (TerrainMeta.Size.x + error.x)),
+                0,
+                error.z * (realPos.z / TerrainMeta.Size.z) - error.z
+                );
+
+            Vector3 cellPos = (realPos - correction) / CELL_SIZE;
+
+
+            int letter = (int)cellPos.x;
+            string c = "";
+            if (letter >= 26)
+            {
+                c += (char)((letter / 26 - 1) + 'A');
+                letter %= 26;
+            }
+            c += (char)(letter + 'A');
+
+            c += ((int)cellPos.z).ToString();
+            return c;
         }
 
         #endregion

@@ -5,22 +5,18 @@
 * Notifies the player he has reached the limit
 * Notifies the player remaining tc's after 1st tc placement
 * Option to send a message to a discord channel when a player tries to place more tc's then allowed
-
-## Performance Update
-Instead of triggering on each placement and checking each prefab placement it will now do the following.
-
-* On startup, all tool cupboards instances IDs are added to a list, linked to players ids
-* On destroy removes the id from the toolcupboard list of the player.
-* On new placement ads the id.
-
-In this way the trigger for *OnEntitySpawned* will search in the player's toolcupboard list instead of
-every item on the server enhancing the performance greatly.
+* in-game admin command to retrieve users TC count and map tile position.
 
 ## Permissions
 
 - `cupboardlimiter.bypass` -- Gives No limits on TC placing
 - `cupboardlimiter.default` -- Sets the cupboard limit on player with default settings
 - `cupboardlimiter.vip` -- Sets the cupboard limit on player with Vip settings
+- `cupboardlimiter.admin` -- Permit the use of commands
+
+## Commands
+
+- `clinspect <partialUserNameOrId>` -- Retrieve the number and position of all TCs for a specific player using it's name (or only a part of it) or it's steam userID. Need the admin permission.
 
 ## Configuration
 
@@ -38,15 +34,21 @@ every item on the server enhancing the performance greatly.
 
 ## Localization
 
+Warning: You NEED to delete the lang file prior to update the plugin, or to modify it yourself to match the current placeholder system.
+
 ```json
 {
-  "MaxLimitDefault": "You have reached the Default maximum cupboard limit of {0}",
-  "MaxLimitVip": "You have reached the Vip maximum cupboard limit of {0}",
-  "Remaining": "Amount of TC's remaining = {0}"
+  "MaxLimitDefault": "You have reached the Default maximum cupboard limit of {0}", //{0} => TC count
+  "MaxLimitVip": "You have reached the Vip maximum cupboard limit of {0}", //{0} => TC count
+  "Remaining": "Amount of TC's remaining = {0}", //{0} => TC count
+  "NoPermission": "You don't have the permission.",
+  "cInspect": "The user {0} have {1} TCs.", //{0} => userName, {1} => TC count
+  "cInspectUsage": "Usage: /{0} <userNameOrId>", //{0} => Command name
+  "cInspectNotFound": "Error: User not found"
 }
 ```
 
-The `{0}` placeholder will be replaced by the amount of TC.
+Current native localizations are English (en) and French (fr).
 
 ## Credits 
 - **BuzZ** The original author
