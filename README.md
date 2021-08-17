@@ -18,7 +18,15 @@
 
 - `clinspect <partialUserNameOrId>` -- Retrieve the number and position of all TCs for a specific player using it's name (or only a part of it) or it's steam userID. Need the admin permission.
 
+## Suggestions
+
+The roadmap of this plugin depends on your suggestions ! (I'll try to add your features as quickly as possible, if they are relevant.)
+ - Dynamic permissions, array-based from configuration. `cupboardlimiter.limit_1` or `cupboardlimiter.limit_2` for configuration `"limits": [8, 12]` with 8 TC for perm limit_1 and 12 for perm limit_2
+ - Team-based limits.
+ - Tracking date when limit is reached
+
 ## Configuration
+
 
 ```json
 {
