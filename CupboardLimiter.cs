@@ -29,7 +29,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.4.0")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.5.0")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -38,18 +38,20 @@ namespace Oxide.Plugins
 
         bool debug = false;
 
-        const string Default_Perm = "cupboardlimiter.default";
         const string Vip_Perm = "cupboardlimiter.vip";
         const string Bypass_Perm = "cupboardlimiter.bypass";
         const string Admin_Perm = "cupboardlimiter.admin";
+        const string Other_Perm = "cupboardlimiter.limit_";
 
         string Message_MaxLimitDefault = "MaxLimitDefault";
         string Message_MaxLimitVip = "MaxLimitVip";
+        string Message_MaxLimit = "MaxLimit";
         string Message_Remaining = "Remaining";
         string Message_NoPermission = "NoPermission";
         string Message_Inspect = "cInspect";
         string Message_InspectUsage = "cInspectUsage";
         string Message_InspectNotFound = "cInspectNotFound";
+
 
         Dictionary<ulong, List<BuildingPrivlidge>> TCIDs = new Dictionary<ulong, List<BuildingPrivlidge>>();
         private int TCCount(BasePlayer player)
@@ -99,10 +101,14 @@ namespace Oxide.Plugins
                 Puts("Config file issue detected. Please delete file, or check syntax and fix.");
                 return;
             }
-            permission.RegisterPermission(Default_Perm, this);
             permission.RegisterPermission(Vip_Perm, this);
             permission.RegisterPermission(Bypass_Perm, this);
             permission.RegisterPermission(Admin_Perm, this);
+
+            for (int i = 0; i < configData.Limits.OtherLimits.Count; i++)
+            {
+                permission.RegisterPermission(Other_Perm + (i + 1), this);
+            }
 
             if (debug) Puts($"Debug is activated check CupboardLimiter.cs file if not intended");
         }
@@ -115,6 +121,8 @@ namespace Oxide.Plugins
             public Settings Limits = new Settings();
             [JsonProperty(PropertyName = "Discord Notification")]
             public SettingsDiscord Discord = new SettingsDiscord();
+            [JsonProperty(PropertyName = "Chat Settings")]
+            public SettingsChat Chat = new SettingsChat();
         }
 
         class Settings
@@ -123,12 +131,23 @@ namespace Oxide.Plugins
             public int DefaultLimit = 1;
             [JsonProperty(PropertyName = "Limit Vip")]
             public int VipLimit = 3;
+            [JsonProperty(PropertyName = "Limit Others")]
+            public List<int> OtherLimits = new List<int>();
         }
 
         class SettingsDiscord
         {
             [JsonProperty(PropertyName = "Discord Webhook URL")]
             public string DiscordWebhookAddress = "";
+        }
+
+        class SettingsChat
+        {
+            [JsonProperty(PropertyName = "Prefix")]
+            public string Prefix = "[Cupboard Limiter] :";
+            [JsonProperty(PropertyName = "Icon's SteamId")]
+            public ulong SteamIdIcon = 76561198049668039;
+
         }
 
         private bool LoadConfigVariables()
@@ -162,6 +181,7 @@ namespace Oxide.Plugins
             {
                 [Message_MaxLimitDefault] = "You have reached the Default maximum cupboard limit of {0}",
                 [Message_MaxLimitVip] = "You have reached the Vip maximum cupboard limit of {0}",
+                [Message_MaxLimit] = "You have reached the maximum cupboard limit of {0}",
                 [Message_Remaining] = "Amount of TC's remaining = {0}",
                 [Message_NoPermission] = "You don't have the permission.",
                 [Message_Inspect] = "The user {0} have {1} TCs.",
@@ -173,6 +193,7 @@ namespace Oxide.Plugins
             {
                 [Message_MaxLimitDefault] = "Vous avez atteint la limite par defaut de {0} pour les armoires a outils.",
                 [Message_MaxLimitVip] = "Vous avez atteint la limite VIP de {0} pour les armoires a outils.",
+                [Message_MaxLimit] = "Vous avez atteint la limite de {0} pour les armoires a outils.",
                 [Message_Remaining] = "Il vous reste {0} armoires a outil a placer.",
                 [Message_NoPermission] = "Vous n'avez pas la permission",
                 [Message_Inspect] = "Le joueur {0} a {1} TCs.",
@@ -243,24 +264,12 @@ namespace Oxide.Plugins
 
                 if (!permission.UserHasPermission(player.UserIDString, Bypass_Perm))
                 {
-                    int limit = configData.Limits.DefaultLimit;
+                    int limit = GetTCLimit(player);
                     int count = TCCount(player);
-
-                    if (debug) Puts($"{player}: Default limit {limit}");
-                    if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
-                    {
-                        limit = configData.Limits.VipLimit;
-                        if (debug) Puts($"{player}: VIP limit {limit}");
-                    }
-                    else if (permission.UserHasPermission(player.UserIDString, Default_Perm))
-                    {
-                        limit = configData.Limits.DefaultLimit;
-                        if (debug) Puts($"{player}: RE-Default limit {limit}");
-                    }
 
                     if (debug) Puts($"{player}: cupboard count {count}");
                     // EXTRA CHECK IF PLAYER HAS ABNORMAL CUPBOARD COUNT
-                    if (count - limit > 1) PrintWarning($"PLAYER {player.displayName} has {count - 1} more cupboards over his limit of {limit} !");
+                    if (count - limit > 1) PrintWarning($"PLAYER {player.displayName} has {count - limit - 1} more cupboards over his limit of {limit} !");
                     // CANCEL IF LIMIT REACHED
                     
                     if (count > limit)
@@ -276,13 +285,11 @@ namespace Oxide.Plugins
                                 }
                                 catch { }
                             }
-
                             RefundTC(TC, player);
-                            return;
                         });
                     }
                     else
-                        SendReply(player, FormatMessage(Message_Remaining, player.UserIDString, limit - count));
+                        ChatMessage(player, FormatMessage(Message_Remaining, player.UserIDString, limit - count));
                 }
             }
             return;
@@ -325,27 +332,27 @@ namespace Oxide.Plugins
                                 {
                                     msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
                                 }
-                                SendReply(player, msg);
+                                ChatMessage(player, msg);
                             }
                             else
                             {
-                                SendReply(player, FormatMessage(Message_Inspect, player.UserIDString, user.Name, 0));
+                                ChatMessage(player, FormatMessage(Message_Inspect, player.UserIDString, user.Name, 0));
                             }
                         }
                     }
                     else
                     {
-                        SendReply(player, FormatMessage(Message_InspectNotFound, player.UserIDString));
+                        ChatMessage(player, FormatMessage(Message_InspectNotFound, player.UserIDString));
                     }
                 }
                 else
                 {
-                    SendReply(player, FormatMessage(Message_InspectUsage, player.UserIDString, command));
+                    ChatMessage(player, FormatMessage(Message_InspectUsage, player.UserIDString, command));
                 }
             }
             else
             {
-                SendReply(player, FormatMessage(Message_NoPermission, player.UserIDString));
+                ChatMessage(player, FormatMessage(Message_NoPermission, player.UserIDString));
             }
         }
 
@@ -359,16 +366,61 @@ namespace Oxide.Plugins
 
             if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
             {
-                SendReply(player, FormatMessage(Message_MaxLimitVip, player.UserIDString, configData.Limits.VipLimit));
+                ChatMessage(player, FormatMessage(Message_MaxLimitVip, player.UserIDString, configData.Limits.VipLimit));
             }
-            else if (permission.UserHasPermission(player.UserIDString, Default_Perm))
+            else
             {
-                SendReply(player, FormatMessage(Message_MaxLimitDefault, player.UserIDString, configData.Limits.DefaultLimit));
+                bool otherLimitPerm = false;
+                for (int i = 0; i < configData.Limits.OtherLimits.Count; i++)
+                {
+                    if (permission.UserHasPermission(player.UserIDString, Other_Perm + (i + 1)))
+                    {
+                        otherLimitPerm = true;
+                        break;
+                    }
+                }
+                if (otherLimitPerm)
+                {
+                    ChatMessage(player, FormatMessage(Message_MaxLimit, player.UserIDString, configData.Limits.DefaultLimit));
+                }
+                else
+                {
+                    ChatMessage(player, FormatMessage(Message_MaxLimitDefault, player.UserIDString, configData.Limits.DefaultLimit));
+                }
             }
 
             TC.KillMessage();
             var itemToGive = ItemManager.CreateByItemID(-97956382, 1);
             if (itemToGive != null) player.inventory.GiveItem(itemToGive);
+        }
+
+        public int GetTCLimit(BasePlayer player)
+        {
+            int limit = configData.Limits.DefaultLimit;
+
+            if (debug) Puts($"{player}: Default limit {limit}");
+
+            if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
+            {
+                limit = configData.Limits.VipLimit;
+                if (debug) Puts($"{player}: VIP limit {limit}");
+            }
+            else if (configData.Limits.OtherLimits.Count > 0)
+            {
+                for (int i = 0; i < configData.Limits.OtherLimits.Count; i++)
+                {
+                    if (permission.UserHasPermission(player.UserIDString, Other_Perm + (i + 1)))
+                    {
+                        if (configData.Limits.OtherLimits[i] > limit)
+                        {
+                            limit = configData.Limits.OtherLimits[i];
+                        }
+                    }
+                }
+                if (debug) Puts($"{player}: Other limit {limit}");
+            }
+
+            return limit;
         }
 
         public void Callback(int code, string response)
@@ -378,6 +430,11 @@ namespace Oxide.Plugins
         public string FormatMessage(string messageId, string userId, params object[] parameters)
         {
             return string.Format(lang.GetMessage(messageId, this, userId), parameters);
+        }
+
+        private void ChatMessage(BasePlayer player, string message)
+        {
+            Player.Message(player, message, configData.Chat.Prefix, configData.Chat.SteamIdIcon);
         }
 
         private string GetCoordinates(Vector3 position)
