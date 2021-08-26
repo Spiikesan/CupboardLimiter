@@ -1,18 +1,21 @@
 ## Features
 
-* Set a maximum cupboard limit per player with permissions
+* Set a maximum cupboard limit per group with permissions
 * Notify in console if player has too much cupboard already
 * Notifies the player he has reached the limit
 * Notifies the player remaining tc's after 1st tc placement
 * Option to send a message to a discord channel when a player tries to place more tc's then allowed
-* in-game admin command to retrieve users TC count and map tile position.
+* in-game admin command to retrieve users TC count and map tile position of each.
+* Customizable chat icon and prefix for messages.
+* Dynamic limit system, with one permission for each limits defined in the configuration. If multiple permissions are granted to one player, only the maximum limit is taken.
+* VIP limit will be taken if it's granted, over any other perm, even higher.
 
 ## Permissions
 
 - `cupboardlimiter.bypass` -- Gives No limits on TC placing
-- `cupboardlimiter.default` -- Sets the cupboard limit on player with default settings
 - `cupboardlimiter.vip` -- Sets the cupboard limit on player with Vip settings
 - `cupboardlimiter.admin` -- Permit the use of commands
+- `cupboardlimiter.limit_X` -- where X is the index in the array of "Limit Others" limits in the configuration, begining at 1.
 
 ## Commands
 
@@ -21,9 +24,7 @@
 ## Suggestions
 
 The roadmap of this plugin depends on your suggestions ! (I'll try to add your features as quickly as possible, if they are relevant.)
- - Dynamic permissions, array-based from configuration. `cupboardlimiter.limit_1` or `cupboardlimiter.limit_2` for configuration `"limits": [8, 12]` with 8 TC for perm limit_1 and 12 for perm limit_2
  - Team-based limits.
- - Tracking date when limit is reached
 
 ## Configuration
 
@@ -32,10 +33,15 @@ The roadmap of this plugin depends on your suggestions ! (I'll try to add your f
 {
   "Max amount of TC(s) to place": {
     "Limit Default": 1,
-    "Limit Vip": 3
+    "Limit Vip": 3,
+	"Limit Others": []
   },
   "Discord Notification": {
     "Discord Webhook URL": ""
+  },
+  "Chat Settings": {
+    "Prefix": "[Cupboard Limiter] :",
+	"Icon's SteamId": 76561198049668039
   }
 }
 ```
