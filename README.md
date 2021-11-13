@@ -24,7 +24,10 @@
 ## Suggestions
 
 The roadmap of this plugin depends on your suggestions ! (I'll try to add your features as quickly as possible, if they are relevant.)
+ 
+ - Clan based limit
  - Team-based limits.
+ - Per-zone limit
 
 ## Configuration
 
