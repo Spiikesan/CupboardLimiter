@@ -2,13 +2,14 @@
 
 * Set a maximum cupboard limit per group with permissions
 * Notify in console if player has too much cupboard already
-* Notifies the player he has reached the limit
-* Notifies the player remaining tc's after 1st tc placement
-* Option to send a message to a discord channel when a player tries to place more tc's then allowed
+* Notifies the player if he has reached the limit
+* Notifies the player remaining tc's after each tc placement
+* Option to send a message to a discord channel when a player tries to place more tc's than allowed
 * in-game admin command to retrieve users TC count and map tile position of each.
 * Customizable chat icon and prefix for messages.
-* Dynamic limit system, with one permission for each limits defined in the configuration. If multiple permissions are granted to one player, only the maximum limit is taken.
-* VIP limit will be taken if it's granted, over any other perm, even higher.
+* Dynamic limit system, with one permission for each limits defined in the configuration. If multiple permissions are granted to one player, only the maximum limit is applied.
+* VIP limit will be taken if it's granted, over any other perm (even higher).
+* Team based limits, with configurable limits for each count of members.
 
 ## Permissions
 
@@ -21,23 +22,31 @@
 
 - `clinspect <partialUserNameOrId>` -- Retrieve the number and position of all TCs for a specific player using it's name (or only a part of it) or it's steam userID. Need the admin permission.
 
-## Suggestions
+## Roadmap / Suggestions
 
 The roadmap of this plugin depends on your suggestions ! (I'll try to add your features as quickly as possible, if they are relevant.)
- 
- - Clan based limit
- - Team-based limits.
- - Per-zone limit
+ - Send a message to a player if the limit is overpassed the limit of TCs to tell him to remove the difference. If nothing is done after a configurable timer, all TCs bases will decay (as if there was no resources).
 
 ## Configuration
 
+Here is the description for an example configuration (not the default one) :
+ - The default limit is 5 TC.
+ - If the player has the VIP permission, he will have a limit of 20 TC.
+ - Else if the player have any of the limit_1, limit_2 or limit_3 permission, only the granted perm with the maximum amount will be applied (Can be less than the Default one **only** if the "Limit Others Can Downgrade Default" setting is **true**).
+ - Else if the player is in a team with at least 2 and less than 4 members, the limit is 2 TCs. If there is at least 4 members, the limit is 1 for each player.
 
+Corresponding to the following JSON file:
 ```json
 {
   "Max amount of TC(s) to place": {
-    "Limit Default": 1,
-    "Limit Vip": 3,
-	"Limit Others": []
+    "Limit Default": 5,
+    "Limit Vip": 20,
+	"Limit Others": [2, 10, 8],
+	"Limit Others Can Downgrade Default": true
+	"Limits In Team" : {
+	  {"2", 2},
+	  {"4", 1},
+	},
   },
   "Discord Notification": {
     "Discord Webhook URL": ""

@@ -23,13 +23,20 @@ using UnityEngine;
  * V1.2.1   :   Fix for remaining tc limit chatmessage
  * v1.2.2   :   Performance Update
  * v1.2.3   :   Possible fix for NRE at startup
- * 
+ * v1.3.0   :   Maintain (Spiikesan): Rework done. Performance increased and bugs fixed.
+ * v1.3.1   :   Lang messages are now version dependant (CANCELLED)
+ * v1.4.0   :   Add command 'clinspect' to retrieve users TCs informations
+ * v1.5.0   :   "Limit reached" message is now working.
+ *          :   Chat prefix and icon is customizable.
+ *          :   Dynamic limits and permissions.
+ * v1.6.0   :   Add team-based limits.
+ * v1.7.0   ~   No overstep of TCs count limits : Messages and forced decay otherwise.
  **********************************************************************/
 #endregion
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.5.0")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.6.0")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -133,6 +140,10 @@ namespace Oxide.Plugins
             public int VipLimit = 3;
             [JsonProperty(PropertyName = "Limit Others")]
             public List<int> OtherLimits = new List<int>();
+            [JsonProperty(PropertyName = "Limit Others Can Downgrade Default")]
+            public bool OtherLimitsOverDefault = false;
+            [JsonProperty(PropertyName = "Limits In Team")]
+            public Dictionary<int, int> TeamLimits = new Dictionary<int, int>();
         }
 
         class SettingsDiscord
@@ -155,6 +166,17 @@ namespace Oxide.Plugins
             try
             {
                 configData = Config.ReadObject<ConfigData>();
+                foreach (var data in configData.Limits.TeamLimits)
+                {
+                    if (data.Key <= 1)
+                    {
+                        Puts($"Config Warning : Team count {data.Key} is below the limit of 2 players.");
+                    }
+                    else if (data.Key > RelationshipManager.maxTeamSize)
+                    {
+                        Puts($"Config Warning : Team count {data.Key} is over the max team limit of {RelationshipManager.maxTeamSize} players.");
+                    }
+                }
             }
             catch
             {
@@ -194,7 +216,7 @@ namespace Oxide.Plugins
                 [Message_MaxLimitDefault] = "Vous avez atteint la limite par defaut de {0} pour les armoires a outils.",
                 [Message_MaxLimitVip] = "Vous avez atteint la limite VIP de {0} pour les armoires a outils.",
                 [Message_MaxLimit] = "Vous avez atteint la limite de {0} pour les armoires a outils.",
-                [Message_Remaining] = "Il vous reste {0} armoires a outil a placer.",
+                [Message_Remaining] = "Il vous reste {0} armoires a outils a placer.",
                 [Message_NoPermission] = "Vous n'avez pas la permission",
                 [Message_Inspect] = "Le joueur {0} a {1} TCs.",
                 [Message_InspectUsage] = "Usage: /{0} <nomJoueurOuId>",
@@ -407,17 +429,34 @@ namespace Oxide.Plugins
             }
             else if (configData.Limits.OtherLimits.Count > 0)
             {
+                int olimit = -1;
                 for (int i = 0; i < configData.Limits.OtherLimits.Count; i++)
                 {
                     if (permission.UserHasPermission(player.UserIDString, Other_Perm + (i + 1)))
                     {
-                        if (configData.Limits.OtherLimits[i] > limit)
+                        if (configData.Limits.OtherLimits[i] > olimit)
                         {
-                            limit = configData.Limits.OtherLimits[i];
+                            olimit = configData.Limits.OtherLimits[i];
                         }
                     }
                 }
-                if (debug) Puts($"{player}: Other limit {limit}");
+                if (olimit > 0 && (olimit > limit || configData.Limits.OtherLimitsOverDefault))
+                {
+                    limit = olimit;
+                }
+                if (debug) Puts($"{player}: Other limit {olimit}");
+            }
+            else if (configData.Limits.TeamLimits.Count > 0 && player.Team != null)
+            {
+                int tcount = player.Team.members.Count;
+                foreach (var tlim in configData.Limits.TeamLimits)
+                {
+                    if (tlim.Key <= tcount)
+                        limit = tlim.Value;
+                    else
+                        break;
+                }
+                if (debug) Puts($"{player}: Team limit {limit} for {tcount} players in the team");
             }
 
             return limit;
