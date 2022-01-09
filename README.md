@@ -42,7 +42,7 @@ Corresponding to the following JSON file:
     "Limit Default": 5,
     "Limit Vip": 20,
 	"Limit Others": [2, 10, 8],
-	"Limit Others Can Downgrade Default": true
+	"Limit Others Can Downgrade Default": true,
 	"Limits In Team" : {
 	  {"2", 2},
 	  {"4", 1},
