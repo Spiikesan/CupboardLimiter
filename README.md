@@ -31,9 +31,9 @@ The roadmap of this plugin depends on your suggestions ! (I'll try to add your f
 
 Here is the description for an example configuration (not the default one) :
  - The default limit is 5 TC.
- - If the player has the VIP permission, he will have a limit of 20 TC.
+ - If the player is in a team with at least 2 and less than 4 members, the limit is 8 TCs for all the team. If there is at least 4 members, the limit is 16 for all the team. If the "Global Team Limit" were false, those limits would be per player.
+ - Else If the player has the VIP permission, he will have a limit of 20 TC.
  - Else if the player have any of the limit_1, limit_2 or limit_3 permission, only the granted perm with the maximum amount will be applied (Can be less than the Default one **only** if the "Limit Others Can Downgrade Default" setting is **true**).
- - Else if the player is in a team with at least 2 and less than 4 members, the limit is 2 TCs. If there is at least 4 members, the limit is 1 for each player.
 
 Corresponding to the following JSON file:
 ```json
@@ -43,9 +43,10 @@ Corresponding to the following JSON file:
     "Limit Vip": 20,
 	"Limit Others": [2, 10, 8],
 	"Limit Others Can Downgrade Default": true,
+	"Global Team Limit": true,
 	"Limits In Team" : {
-	  {"2", 2},
-	  {"4", 1}
+	  {"2", 8},
+	  {"4", 16}
 	},
   },
   "Discord Notification": {
@@ -70,7 +71,8 @@ Warning: You NEED to delete the lang file prior to update the plugin, or to modi
   "NoPermission": "You don't have the permission.",
   "cInspect": "The user {0} have {1} TCs.", //{0} => userName, {1} => TC count
   "cInspectUsage": "Usage: /{0} <userNameOrId>", //{0} => Command name
-  "cInspectNotFound": "Error: User not found"
+  "cInspectNotFound": "Error: User not found",
+  "TeamOvercount": "You cannot invite this player right now, he have {0} TC too many." // {0} => too many TC amount
 }
 ```
 

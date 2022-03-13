@@ -67,7 +67,7 @@ namespace Oxide.Plugins
             List<BuildingPrivlidge> tcs;
             int count = 0;
 
-            if (configData.Limits.TeamGlobalLimit && player.Team != null && player.Team.members.Count > 1)
+            if (configData.Limits.GlobalTeamLimit && player.Team != null && player.Team.members.Count > 1)
             {
                 foreach (var pl in player.Team.members)
                 {
@@ -158,7 +158,7 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Limit Others Can Downgrade Default")]
             public bool OtherLimitsOverDefault = false;
             [JsonProperty(PropertyName = "Global Team Limit")]
-            public bool TeamGlobalLimit = true;
+            public bool GlobalTeamLimit = true;
             [JsonProperty(PropertyName = "Limits In Team")]
             public Dictionary<int, int> TeamLimits = new Dictionary<int, int>();
         }
@@ -349,7 +349,7 @@ namespace Oxide.Plugins
         object OnTeamInvite(BasePlayer inviter, BasePlayer target)
         {
             Puts($"{inviter.displayName} invited {target.displayName} to his team");
-            if (configData.Limits.TeamGlobalLimit)
+            if (configData.Limits.GlobalTeamLimit)
             {
                 int limit = GetTCLimit(inviter);
                 int teamTC = TCCount(inviter);
