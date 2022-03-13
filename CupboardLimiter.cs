@@ -58,18 +58,33 @@ namespace Oxide.Plugins
         string Message_Inspect = "cInspect";
         string Message_InspectUsage = "cInspectUsage";
         string Message_InspectNotFound = "cInspectNotFound";
+        string Message_TeamOvercount = "TeamOvercount";
 
 
         Dictionary<ulong, List<BuildingPrivlidge>> TCIDs = new Dictionary<ulong, List<BuildingPrivlidge>>();
         private int TCCount(BasePlayer player)
         {
             List<BuildingPrivlidge> tcs;
+            int count = 0;
 
-            if (TCIDs.TryGetValue(player.userID, out tcs))
+            if (configData.Limits.TeamGlobalLimit && player.Team != null && player.Team.members.Count > 1)
             {
-                return tcs.Count();
+                foreach (var pl in player.Team.members)
+                {
+                    if (TCIDs.TryGetValue(pl, out tcs))
+                    {
+                        count += tcs.Count();
+                    }
+                }
             }
-            return 0;
+            else
+            {
+                if (TCIDs.TryGetValue(player.userID, out tcs))
+                {
+                    count = tcs.Count();
+                }
+            }
+            return count;
         }
 
         private void TCAdd(ulong playerId, BuildingPrivlidge tcId)
@@ -142,6 +157,8 @@ namespace Oxide.Plugins
             public List<int> OtherLimits = new List<int>();
             [JsonProperty(PropertyName = "Limit Others Can Downgrade Default")]
             public bool OtherLimitsOverDefault = false;
+            [JsonProperty(PropertyName = "Global Team Limit")]
+            public bool TeamGlobalLimit = false;
             [JsonProperty(PropertyName = "Limits In Team")]
             public Dictionary<int, int> TeamLimits = new Dictionary<int, int>();
         }
@@ -209,6 +226,7 @@ namespace Oxide.Plugins
                 [Message_Inspect] = "The user {0} have {1} TCs.",
                 [Message_InspectUsage] = "Usage: /{0} <userNameOrId>",
                 [Message_InspectNotFound] = "Error: User not found",
+                [Message_TeamOvercount] = "You cannot invite this player right now, he have {0} TC too many.",
             }, this, "en");
 
             lang.RegisterMessages(new Dictionary<string, string>
@@ -221,6 +239,7 @@ namespace Oxide.Plugins
                 [Message_Inspect] = "Le joueur {0} a {1} TCs.",
                 [Message_InspectUsage] = "Usage: /{0} <nomJoueurOuId>",
                 [Message_InspectNotFound] = "Erreur: Le joueur n'a pas ete trouve.",
+                [Message_TeamOvercount] = "Vous ne pouvez pas inviter ce joueur actuellement, il a {0} armoires a outils en trop.",
             }, this, "fr");
         }
 
@@ -327,6 +346,23 @@ namespace Oxide.Plugins
             }
         }
 
+        object OnTeamInvite(BasePlayer inviter, BasePlayer target)
+        {
+            Puts($"{inviter.displayName} invited {target.displayName} to his team");
+            if (configData.Limits.TeamGlobalLimit)
+            {
+                int limit = GetTCLimit(inviter);
+                int teamTC = TCCount(inviter);
+                int targetTC = TCCount(target);
+                if (teamTC + targetTC > limit)
+                {
+                    ChatMessage(inviter, FormatMessage(Message_TeamOvercount, inviter.UserIDString, (teamTC + targetTC) - limit));
+                    return false;
+                }
+            }
+            return null;
+        }
+
         #endregion
 
         #region Chat Commands
@@ -422,7 +458,19 @@ namespace Oxide.Plugins
 
             if (debug) Puts($"{player}: Default limit {limit}");
 
-            if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
+            if (configData.Limits.TeamLimits.Count > 0 && player.Team != null && player.Team.members.Count > 1)
+            {
+                int tcount = player.Team.members.Count;
+                foreach (var tlim in configData.Limits.TeamLimits)
+                {
+                    if (tlim.Key <= tcount)
+                        limit = tlim.Value;
+                    else
+                        break;
+                }
+                if (debug) Puts($"{player}: Team limit {limit} for {tcount} players in the team");
+            }
+            else if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
             {
                 limit = configData.Limits.VipLimit;
                 if (debug) Puts($"{player}: VIP limit {limit}");
@@ -445,18 +493,6 @@ namespace Oxide.Plugins
                     limit = olimit;
                 }
                 if (debug) Puts($"{player}: Other limit {olimit}");
-            }
-            else if (configData.Limits.TeamLimits.Count > 0 && player.Team != null)
-            {
-                int tcount = player.Team.members.Count;
-                foreach (var tlim in configData.Limits.TeamLimits)
-                {
-                    if (tlim.Key <= tcount)
-                        limit = tlim.Value;
-                    else
-                        break;
-                }
-                if (debug) Puts($"{player}: Team limit {limit} for {tcount} players in the team");
             }
 
             return limit;
