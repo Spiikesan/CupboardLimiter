@@ -158,7 +158,7 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Limit Others Can Downgrade Default")]
             public bool OtherLimitsOverDefault = false;
             [JsonProperty(PropertyName = "Global Team Limit")]
-            public bool TeamGlobalLimit = false;
+            public bool TeamGlobalLimit = true;
             [JsonProperty(PropertyName = "Limits In Team")]
             public Dictionary<int, int> TeamLimits = new Dictionary<int, int>();
         }
