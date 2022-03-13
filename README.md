@@ -1,3 +1,7 @@
+# Update Information
+
+**_BREAKING CHANGE_ for version 1.6.1 when upgrading: The Team Limit is now global per team and not per member. The "Global Team Limit" is true by default in the config because this behaviour is more likely what server owners expect**
+
 ## Features
 
 * Set a maximum cupboard limit per group with permissions
@@ -9,7 +13,7 @@
 * Customizable chat icon and prefix for messages.
 * Dynamic limit system, with one permission for each limits defined in the configuration. If multiple permissions are granted to one player, only the maximum limit is applied.
 * VIP limit will be taken if it's granted, over any other perm (even higher).
-* Team based limits, with configurable limits for each count of members.
+* Team based limits, with configurable limits for each count of members
 
 ## Permissions
 
