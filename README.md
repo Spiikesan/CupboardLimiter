@@ -49,8 +49,8 @@ Corresponding to the following JSON file:
 	"Limit Others Can Downgrade Default": true,
 	"Global Team Limit": true,
 	"Limits In Team" : {
-	  {"2", 8},
-	  {"4", 16}
+	  "2": 8,
+	  "4": 16
 	},
   },
   "Discord Notification": {
