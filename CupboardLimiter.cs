@@ -352,7 +352,6 @@ namespace Oxide.Plugins
 
         object OnTeamInvite(BasePlayer inviter, BasePlayer target)
         {
-            Puts($"{inviter.displayName} invited {target.displayName} to his team");
             if (configData.Limits.GlobalTeamLimit)
             {
                 int limit = GetTCLimit(inviter);
