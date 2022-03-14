@@ -19,12 +19,13 @@
 
 - `cupboardlimiter.bypass` -- Gives No limits on TC placing
 - `cupboardlimiter.vip` -- Sets the cupboard limit on player with Vip settings
-- `cupboardlimiter.admin` -- Permit the use of commands
+- `cupboardlimiter.admin` -- Unused... Admin comming
 - `cupboardlimiter.limit_X` -- where X is the index in the array of "Limit Others" limits in the configuration, begining at 1.
+- `cupboardlimiter.commandList` -- Use the /tc command
 
 ## Commands
 
-- `clinspect <partialUserNameOrId>` -- Retrieve the number and position of all TCs for a specific player using it's name (or only a part of it) or it's steam userID. Need the admin permission.
+- `tc <partialUserNameOrId>` -- Retrieve the number and position of all TCs for a specific player using it's name (or only a part of it) or it's steam userID. Need the admin permission.
 
 ## Roadmap / Suggestions
 

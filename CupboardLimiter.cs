@@ -50,6 +50,7 @@ namespace Oxide.Plugins
         const string Bypass_Perm = "cupboardlimiter.bypass";
         const string Admin_Perm = "cupboardlimiter.admin";
         const string Other_Perm = "cupboardlimiter.limit_";
+        const string CommandList_Perm = "cupboardlimiter.commandList";
 
         string Message_MaxLimitDefault = "MaxLimitDefault";
         string Message_MaxLimitVip = "MaxLimitVip";
@@ -136,6 +137,7 @@ namespace Oxide.Plugins
             permission.RegisterPermission(Vip_Perm, this);
             permission.RegisterPermission(Bypass_Perm, this);
             permission.RegisterPermission(Admin_Perm, this);
+            permission.RegisterPermission(CommandList_Perm, this);
 
             for (int i = 0; i < configData.Limits.OtherLimits.Count; i++)
             {
@@ -383,10 +385,10 @@ namespace Oxide.Plugins
 
         #region Chat Commands
 
-        [ChatCommand("clinspect")]
+        [ChatCommand("tc")]
         private void ChatCommand_Inspect(BasePlayer player, string command, string[] args)
         {
-            if (permission.UserHasPermission(player.UserIDString, Admin_Perm))
+            if (permission.UserHasPermission(player.UserIDString, CommandList_Perm))
             {
                 if (args.Length >= 1)
                 {
