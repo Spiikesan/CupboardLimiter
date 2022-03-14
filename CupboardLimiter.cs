@@ -78,7 +78,7 @@ namespace Oxide.Plugins
                     }
                 }
                 // Counting pending invites to avoid bypass
-                foreach (var pl in player.Team.invites)
+                foreach (var pl in player.Team.invites.Except(player.Team.members))
                 {
                     if (TCIDs.TryGetValue(pl, out tcs))
                     {
