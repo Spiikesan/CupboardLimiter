@@ -30,6 +30,7 @@ using UnityEngine;
  *          :   Chat prefix and icon is customizable.
  *          :   Dynamic limits and permissions.
  * v1.6.0   :   Add team-based limits.
+ * v1.6.1   :   Refactoring team-based limits
  * v1.7.0   ~   No overstep of TCs count limits : Messages and forced decay otherwise.
  **********************************************************************/
 #endregion
@@ -73,7 +74,7 @@ namespace Oxide.Plugins
                 {
                     if (TCIDs.TryGetValue(pl, out tcs))
                     {
-                        count += tcs.Count();
+                        count += tcs.Count;
                     }
                 }
             }
@@ -81,7 +82,7 @@ namespace Oxide.Plugins
             {
                 if (TCIDs.TryGetValue(player.userID, out tcs))
                 {
-                    count = tcs.Count();
+                    count = tcs.Count;
                 }
             }
             return count;
@@ -166,7 +167,7 @@ namespace Oxide.Plugins
         class SettingsDiscord
         {
             [JsonProperty(PropertyName = "Discord Webhook URL")]
-            public string DiscordWebhookAddress = "";
+            public string DiscordWebhookAddress = string.Empty;
         }
 
         class SettingsChat
@@ -195,8 +196,9 @@ namespace Oxide.Plugins
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                PrintError("An error occured dugin ConfigData load: " + ex.ToString());
                 return false;
             }
             SaveConf();
@@ -272,7 +274,8 @@ namespace Oxide.Plugins
                     try
                     {
                         Puts("User " + BasePlayer.allPlayerList.Single(pl => pl.userID == userTc.Key) + " has " + userTc.Value.Count + " TC : ");
-                    } catch
+                    }
+                    catch
                     {
                         Puts("User " + userTc.Key + " has " + userTc.Value.Count + " TC : ");
                     }
@@ -296,11 +299,12 @@ namespace Oxide.Plugins
 
                 BasePlayer player = BasePlayer.FindByID(TC.OwnerID);
                 if (player == null) return;
-                if (player.IsSleeping() || !player.IsConnected) {
+                if (player.IsSleeping() || !player.IsConnected)
+                {
                     if (debug) Puts($"sleep|offline check");
                     return;
                 }
-                
+
                 // HOW MANY CHECK
 
                 if (!permission.UserHasPermission(player.UserIDString, Bypass_Perm))
@@ -312,7 +316,7 @@ namespace Oxide.Plugins
                     // EXTRA CHECK IF PLAYER HAS ABNORMAL CUPBOARD COUNT
                     if (count - limit > 1) PrintWarning($"PLAYER {player.displayName} has {count - limit - 1} more cupboards over his limit of {limit} !");
                     // CANCEL IF LIMIT REACHED
-                    
+
                     if (count > limit)
                     {
                         NextTick(() =>
@@ -357,6 +361,7 @@ namespace Oxide.Plugins
                 if (teamTC + targetTC > limit)
                 {
                     ChatMessage(inviter, FormatMessage(Message_TeamOvercount, inviter.UserIDString, (teamTC + targetTC) - limit));
+                    inviter.Team.RejectInvite(target);
                     return false;
                 }
             }
@@ -385,7 +390,7 @@ namespace Oxide.Plugins
 
                             if (TCIDs.TryGetValue(userID, out tcs))
                             {
-                                string msg = FormatMessage(Message_Inspect, player.UserIDString, user.Name, tcs.Count());
+                                string msg = FormatMessage(Message_Inspect, player.UserIDString, user.Name, tcs.Count);
                                 foreach (var TC in tcs)
                                 {
                                     msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
@@ -418,9 +423,9 @@ namespace Oxide.Plugins
 
         #region Helpers
 
-        void RefundTC(BaseEntity TC, BasePlayer player)
+        void RefundTC(BaseEntity tC, BasePlayer player)
         {
-            if (debug) Puts($"cancelling cupboard ID {TC.GetInstanceID()} of player {player.UserIDString}");
+            if (debug) Puts($"cancelling cupboard ID {tC.GetInstanceID()} of player {player.UserIDString}");
 
             if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
             {
@@ -447,7 +452,7 @@ namespace Oxide.Plugins
                 }
             }
 
-            TC.KillMessage();
+            tC.KillMessage();
             var itemToGive = ItemManager.CreateByItemID(-97956382, 1);
             if (itemToGive != null) player.inventory.GiveItem(itemToGive);
         }
@@ -529,7 +534,7 @@ namespace Oxide.Plugins
 
 
             int letter = (int)cellPos.x;
-            string c = "";
+            string c = string.Empty;
             if (letter >= 26)
             {
                 c += (char)((letter / 26 - 1) + 'A');
