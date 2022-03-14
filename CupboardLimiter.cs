@@ -77,6 +77,14 @@ namespace Oxide.Plugins
                         count += tcs.Count;
                     }
                 }
+                // Counting pending invites to avoid bypass
+                foreach (var pl in player.Team.invites)
+                {
+                    if (TCIDs.TryGetValue(pl, out tcs))
+                    {
+                        count += tcs.Count;
+                    }
+                }
             }
             else
             {
