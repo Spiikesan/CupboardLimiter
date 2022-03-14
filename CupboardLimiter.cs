@@ -60,6 +60,7 @@ namespace Oxide.Plugins
         string Message_InspectUsage = "cInspectUsage";
         string Message_InspectNotFound = "cInspectNotFound";
         string Message_TeamOvercount = "TeamOvercount";
+        string Message_TeamOvercountTarget = "TeamOvercountTarget";
 
 
         Dictionary<ulong, List<BuildingPrivlidge>> TCIDs = new Dictionary<ulong, List<BuildingPrivlidge>>();
@@ -237,6 +238,7 @@ namespace Oxide.Plugins
                 [Message_InspectUsage] = "Usage: /{0} <userNameOrId>",
                 [Message_InspectNotFound] = "Error: User not found",
                 [Message_TeamOvercount] = "You cannot invite this player right now, he have {0} TC too many.",
+                [Message_TeamOvercountTarget] = "You cannot be invited by this player right now, you have {0} TC too many.",
             }, this, "en");
 
             lang.RegisterMessages(new Dictionary<string, string>
@@ -250,6 +252,7 @@ namespace Oxide.Plugins
                 [Message_InspectUsage] = "Usage: /{0} <nomJoueurOuId>",
                 [Message_InspectNotFound] = "Erreur: Le joueur n'a pas ete trouve.",
                 [Message_TeamOvercount] = "Vous ne pouvez pas inviter ce joueur actuellement, il a {0} armoires a outils en trop.",
+                [Message_TeamOvercountTarget] = "Vous ne pouvez pas etre invite par ce joueur actuellement, vous avez {0} armoires a outils en trop.",
             }, this, "fr");
         }
 
@@ -368,6 +371,7 @@ namespace Oxide.Plugins
                 if (teamTC + targetTC > limit)
                 {
                     ChatMessage(inviter, FormatMessage(Message_TeamOvercount, inviter.UserIDString, (teamTC + targetTC) - limit));
+                    ChatMessage(target, FormatMessage(Message_TeamOvercountTarget, target.UserIDString, (teamTC + targetTC) - limit));
                     inviter.Team.RejectInvite(target);
                     return false;
                 }
