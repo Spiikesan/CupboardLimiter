@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.6.0")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.6.1")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -67,6 +67,7 @@ namespace Oxide.Plugins
         Dictionary<ulong, List<BuildingPrivlidge>> TCIDs = new Dictionary<ulong, List<BuildingPrivlidge>>();
         private int TCCount(BasePlayer player)
         {
+            //bypass command : ignore TC from player with bypass ?
             List<BuildingPrivlidge> tcs;
             int count = 0;
 
