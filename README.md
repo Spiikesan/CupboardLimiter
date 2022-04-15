@@ -25,6 +25,7 @@
 
 ## Commands
 
+- `tc` -- Retrieve the current count, remaining and position of your TCs. No permission needed.
 - `tc <partialUserNameOrId>` -- Retrieve the number and position of all TCs for a specific player using it's name (or only a part of it) or it's steam userID. Need the admin permission.
 
 ## Roadmap / Suggestions

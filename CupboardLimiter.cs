@@ -31,13 +31,13 @@ using UnityEngine;
  *          :   Dynamic limits and permissions.
  * v1.6.0   :   Add team-based limits.
  * v1.6.1   :   Refactoring team-based limits
- * v1.7.0   ~   No overstep of TCs count limits : Messages and forced decay otherwise.
+ * V1.6.2   :   Command "tc" now use the player instead of the argument if there is no argument.
  **********************************************************************/
 #endregion
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.6.1")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.6.2")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -52,16 +52,16 @@ namespace Oxide.Plugins
         const string Other_Perm = "cupboardlimiter.limit_";
         const string CommandList_Perm = "cupboardlimiter.commandList";
 
-        string Message_MaxLimitDefault = "MaxLimitDefault";
-        string Message_MaxLimitVip = "MaxLimitVip";
-        string Message_MaxLimit = "MaxLimit";
-        string Message_Remaining = "Remaining";
-        string Message_NoPermission = "NoPermission";
-        string Message_Inspect = "cInspect";
-        string Message_InspectUsage = "cInspectUsage";
-        string Message_InspectNotFound = "cInspectNotFound";
-        string Message_TeamOvercount = "TeamOvercount";
-        string Message_TeamOvercountTarget = "TeamOvercountTarget";
+        const string Message_MaxLimitDefault = "MaxLimitDefault";
+        const string Message_MaxLimitVip = "MaxLimitVip";
+        const string Message_MaxLimit = "MaxLimit";
+        const string Message_Remaining = "Remaining";
+        const string Message_NoPermission = "NoPermission";
+        const string Message_Inspect = "cInspect";
+        const string Message_InspectOwn = "cInspectOwn";
+        const string Message_InspectNotFound = "cInspectNotFound";
+        const string Message_TeamOvercount = "TeamOvercount";
+        const string Message_TeamOvercountTarget = "TeamOvercountTarget";
 
 
         Dictionary<ulong, List<BuildingPrivlidge>> TCIDs = new Dictionary<ulong, List<BuildingPrivlidge>>();
@@ -238,7 +238,7 @@ namespace Oxide.Plugins
                 [Message_Remaining] = "Amount of TC's remaining = {0}",
                 [Message_NoPermission] = "You don't have the permission.",
                 [Message_Inspect] = "The user {0} have {1} TCs.",
-                [Message_InspectUsage] = "Usage: /{0} <userNameOrId>",
+                [Message_InspectOwn] = "You have {0} TC and {1} remaining.",
                 [Message_InspectNotFound] = "Error: User not found",
                 [Message_TeamOvercount] = "You cannot invite this player right now, he have {0} TC too many.",
                 [Message_TeamOvercountTarget] = "You cannot be invited by this player right now, you have {0} TC too many.",
@@ -252,7 +252,7 @@ namespace Oxide.Plugins
                 [Message_Remaining] = "Il vous reste {0} armoires a outils a placer.",
                 [Message_NoPermission] = "Vous n'avez pas la permission",
                 [Message_Inspect] = "Le joueur {0} a {1} TCs.",
-                [Message_InspectUsage] = "Usage: /{0} <nomJoueurOuId>",
+                [Message_InspectOwn] = "Vous avez {0} TC(s) et {1} restant a poser.",
                 [Message_InspectNotFound] = "Erreur: Le joueur n'a pas ete trouve.",
                 [Message_TeamOvercount] = "Vous ne pouvez pas inviter ce joueur actuellement, il a {0} armoires a outils en trop.",
                 [Message_TeamOvercountTarget] = "Vous ne pouvez pas etre invite par ce joueur actuellement, vous avez {0} armoires a outils en trop.",
@@ -389,32 +389,23 @@ namespace Oxide.Plugins
         [ChatCommand("tc")]
         private void ChatCommand_Inspect(BasePlayer player, string command, string[] args)
         {
-            if (permission.UserHasPermission(player.UserIDString, CommandList_Perm))
+
+            ulong userID = player.userID;
+            string userName = player.displayName;
+            bool isOwn = true;
+            if (args.Length >= 1)
             {
-                if (args.Length >= 1)
+                isOwn = false;
+                userID = 0;
+                if (permission.UserHasPermission(player.UserIDString, CommandList_Perm))
                 {
                     var user = covalence.Players.FindPlayer(args[0]);
-                    ulong userID;
 
                     if (user is IPlayer)
                     {
                         if (ulong.TryParse(user.Id, out userID))
                         {
-                            List<BuildingPrivlidge> tcs;
-
-                            if (TCIDs.TryGetValue(userID, out tcs))
-                            {
-                                string msg = FormatMessage(Message_Inspect, player.UserIDString, user.Name, tcs.Count);
-                                foreach (var TC in tcs)
-                                {
-                                    msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
-                                }
-                                ChatMessage(player, msg);
-                            }
-                            else
-                            {
-                                ChatMessage(player, FormatMessage(Message_Inspect, player.UserIDString, user.Name, 0));
-                            }
+                            userName = user.Name;
                         }
                     }
                     else
@@ -424,13 +415,23 @@ namespace Oxide.Plugins
                 }
                 else
                 {
-                    ChatMessage(player, FormatMessage(Message_InspectUsage, player.UserIDString, command));
+                    ChatMessage(player, FormatMessage(Message_NoPermission, player.UserIDString));
                 }
             }
-            else
+
+            if (userID.IsSteamId())
             {
-                ChatMessage(player, FormatMessage(Message_NoPermission, player.UserIDString));
+                List<BuildingPrivlidge> tcs = new List<BuildingPrivlidge>();
+                TCIDs.TryGetValue(userID, out tcs);
+                string msg = isOwn ? FormatMessage(Message_InspectOwn, player.UserIDString, tcs.Count, GetTCLimit(player) - TCCount(player))
+                                   : FormatMessage(Message_Inspect, player.UserIDString, userName, tcs.Count);
+                foreach (var TC in tcs)
+                {
+                    msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
+                }
+                ChatMessage(player, msg);
             }
+
         }
 
         #endregion
