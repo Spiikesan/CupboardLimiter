@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.6.2")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.7.1")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -60,6 +60,7 @@ namespace Oxide.Plugins
         const string Message_Inspect = "cInspect";
         const string Message_InspectOwn = "cInspectOwn";
         const string Message_InspectNotFound = "cInspectNotFound";
+        const string Message_InspectUsage = "cInspectUsage";
         const string Message_TeamOvercount = "TeamOvercount";
         const string Message_TeamOvercountTarget = "TeamOvercountTarget";
 
@@ -242,6 +243,7 @@ namespace Oxide.Plugins
                 [Message_InspectNotFound] = "Error: User not found",
                 [Message_TeamOvercount] = "You cannot invite this player right now, he have {0} TC too many.",
                 [Message_TeamOvercountTarget] = "You cannot be invited by this player right now, you have {0} TC too many.",
+                [Message_InspectUsage] = "Usage: tc <partialNameOrId> ...",
             }, this, "en");
 
             lang.RegisterMessages(new Dictionary<string, string>
@@ -256,6 +258,7 @@ namespace Oxide.Plugins
                 [Message_InspectNotFound] = "Erreur: Le joueur n'a pas ete trouve.",
                 [Message_TeamOvercount] = "Vous ne pouvez pas inviter ce joueur actuellement, il a {0} armoires a outils en trop.",
                 [Message_TeamOvercountTarget] = "Vous ne pouvez pas etre invite par ce joueur actuellement, vous avez {0} armoires a outils en trop.",
+                [Message_InspectUsage] = "Usage: tc <pseudoPartielOuId> ...",
             }, this, "fr");
         }
 
@@ -384,15 +387,15 @@ namespace Oxide.Plugins
 
         #endregion
 
-        #region Chat Commands
+        #region Commands
 
         [ChatCommand("tc")]
         private void ChatCommand_Inspect(BasePlayer player, string command, string[] args)
         {
 
             ulong userID = player.userID;
-            string userName = player.displayName;
             bool isOwn = true;
+            string receiverId = player.UserIDString;
             if (args.Length >= 1)
             {
                 isOwn = false;
@@ -405,7 +408,7 @@ namespace Oxide.Plugins
                     {
                         if (ulong.TryParse(user.Id, out userID))
                         {
-                            userName = user.Name;
+                            player = user.Object as BasePlayer;
                         }
                     }
                     else
@@ -421,18 +424,47 @@ namespace Oxide.Plugins
 
             if (userID.IsSteamId())
             {
-                List<BuildingPrivlidge> tcs = new List<BuildingPrivlidge>();
-                TCIDs.TryGetValue(userID, out tcs);
-                string msg = isOwn ? FormatMessage(Message_InspectOwn, player.UserIDString, tcs.Count, GetTCLimit(player) - TCCount(player))
-                                   : FormatMessage(Message_Inspect, player.UserIDString, userName, tcs.Count);
-                foreach (var TC in tcs)
-                {
-                    msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
-                }
-                ChatMessage(player, msg);
+                ChatMessage(player, PlayerTcsString(player, receiverId, isOwn));
             }
-
         }
+        [ConsoleCommand("tc")]
+        private void ServerCommand_Inspect(ConsoleSystem.Arg arg)
+        {
+            PrintToConsole("ServerCommand");
+            if (!arg.IsServerside)
+            {
+                arg.ReplyWith("Unkown command.");
+            }
+            else if (arg.Args == null || arg.Args.Count() == 0)
+            {
+                arg.ReplyWith(FormatMessage(Message_InspectUsage, null));
+            }
+            else
+            {
+                string reply = "Query result:\n";
+                foreach (string playerId in arg.Args)
+                {
+                    var user = covalence.Players.FindPlayer(playerId);
+                    if (user != null)
+                    {
+                        BasePlayer player = user.Object as BasePlayer;
+                        if (player != null)
+                        {
+                            reply += $"{PlayerTcsString(player, null, false)}\n";
+                        }
+                        else
+                        {
+                            reply += $"Player \"{playerId}\" cannot be got as BasePlayer\n";
+                        }
+                    } else
+                    {
+                        reply += $"Player \"{playerId}\" not found\n";
+                    }
+                }
+                arg.ReplyWith(reply);
+            }
+        }
+
 
         #endregion
 
@@ -530,6 +562,20 @@ namespace Oxide.Plugins
         private void ChatMessage(BasePlayer player, string message)
         {
             Player.Message(player, message, configData.Chat.Prefix, configData.Chat.SteamIdIcon);
+        }
+
+        private string PlayerTcsString(BasePlayer player, string receiverId, bool isOwn)
+        {
+            List<BuildingPrivlidge> tcs;
+            if (!TCIDs.TryGetValue(player.userID, out tcs))
+                tcs = new List<BuildingPrivlidge>();
+            string msg = isOwn ? FormatMessage(Message_InspectOwn, receiverId, tcs.Count, GetTCLimit(player) - TCCount(player))
+                               : FormatMessage(Message_Inspect, receiverId, player.displayName, tcs.Count);
+            foreach (var TC in tcs)
+            {
+                msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
+            }
+            return msg;
         }
 
         private string GetCoordinates(Vector3 position)
