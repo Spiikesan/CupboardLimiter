@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.7.1")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.7.2")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -277,9 +277,10 @@ namespace Oxide.Plugins
                 Puts($"Verified !!\n----------------------------------\nWebhook has been found :\n{configData.Discord.DiscordWebhookAddress}\n----------------------------------");
             }
 
-            foreach (var TC in BaseNetworkable.serverEntities.OfType<BuildingPrivlidge>())
+            foreach (var entity in BaseNetworkable.serverEntities)
             {
-                if (TC.OwnerID.IsSteamId())
+                BuildingPrivlidge TC = entity as BuildingPrivlidge;
+                if (TC != null && !TC.IsDestroyed && TC.OwnerID.IsSteamId())
                 {
                     TCAdd(TC.OwnerID, TC);
                 }
@@ -456,7 +457,8 @@ namespace Oxide.Plugins
                         {
                             reply += $"Player \"{playerId}\" cannot be got as BasePlayer\n";
                         }
-                    } else
+                    }
+                    else
                     {
                         reply += $"Player \"{playerId}\" not found\n";
                     }
@@ -569,6 +571,7 @@ namespace Oxide.Plugins
             List<BuildingPrivlidge> tcs;
             if (!TCIDs.TryGetValue(player.userID, out tcs))
                 tcs = new List<BuildingPrivlidge>();
+            tcs = tcs.FindAll(tc => !tc.IsDestroyed);
             string msg = isOwn ? FormatMessage(Message_InspectOwn, receiverId, tcs.Count, GetTCLimit(player) - TCCount(player))
                                : FormatMessage(Message_Inspect, receiverId, player.displayName, tcs.Count);
             foreach (var TC in tcs)
