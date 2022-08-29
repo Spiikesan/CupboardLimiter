@@ -285,6 +285,7 @@ namespace Oxide.Plugins
                     TCAdd(TC.OwnerID, TC);
                 }
             }
+
             if (debug)
             {
                 foreach (var userTc in TCIDs)
