@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.7.2")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.7.3")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -63,6 +63,7 @@ namespace Oxide.Plugins
         const string Message_InspectUsage = "cInspectUsage";
         const string Message_TeamOvercount = "TeamOvercount";
         const string Message_TeamOvercountTarget = "TeamOvercountTarget";
+        const string Message_Error = "Error";
 
 
         Dictionary<ulong, List<BuildingPrivlidge>> TCIDs = new Dictionary<ulong, List<BuildingPrivlidge>>();
@@ -244,6 +245,7 @@ namespace Oxide.Plugins
                 [Message_TeamOvercount] = "You cannot invite this player right now, he have {0} TC too many.",
                 [Message_TeamOvercountTarget] = "You cannot be invited by this player right now, you have {0} TC too many.",
                 [Message_InspectUsage] = "Usage: tc <partialNameOrId> ...",
+                [Message_Error] = "An unexpected error occured.",
             }, this, "en");
 
             lang.RegisterMessages(new Dictionary<string, string>
@@ -259,6 +261,7 @@ namespace Oxide.Plugins
                 [Message_TeamOvercount] = "Vous ne pouvez pas inviter ce joueur actuellement, il a {0} armoires a outils en trop.",
                 [Message_TeamOvercountTarget] = "Vous ne pouvez pas etre invite par ce joueur actuellement, vous avez {0} armoires a outils en trop.",
                 [Message_InspectUsage] = "Usage: tc <pseudoPartielOuId> ...",
+                [Message_Error] = "Une erreur inattendue s'est produite.",
             }, this, "fr");
         }
 
@@ -424,9 +427,13 @@ namespace Oxide.Plugins
                 }
             }
 
-            if (userID.IsSteamId())
+            if (player != null && userID.IsSteamId())
             {
                 ChatMessage(player, PlayerTcsString(player, receiverId, isOwn));
+            }
+            else
+            {
+                ChatMessage(player, FormatMessage(Message_Error, player.UserIDString));
             }
         }
         [ConsoleCommand("tc")]
