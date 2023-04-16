@@ -532,12 +532,8 @@ namespace Oxide.Plugins
                 }
                 if (debug) Puts($"{player}: Team limit {limit} for {tcount} players in the team");
             }
-            else if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
-            {
-                limit = configData.Limits.VipLimit;
-                if (debug) Puts($"{player}: VIP limit {limit}");
-            }
-            else if (configData.Limits.OtherLimits.Count > 0)
+            
+            if (configData.Limits.OtherLimits.Count > 0)
             {
                 int olimit = -1;
                 for (int i = 0; i < configData.Limits.OtherLimits.Count; i++)
@@ -555,6 +551,12 @@ namespace Oxide.Plugins
                     limit = olimit;
                 }
                 if (debug) Puts($"{player}: Other limit {olimit}");
+            }
+
+            if (permission.UserHasPermission(player.UserIDString, Vip_Perm))
+            {
+                limit = configData.Limits.VipLimit;
+                if (debug) Puts($"{player}: VIP limit {limit}");
             }
 
             return limit;

@@ -11,7 +11,7 @@
 * Option to send a message to a discord channel when a player tries to place more tc's than allowed
 * in-game admin command to retrieve users TC count and map tile position of each.
 * Customizable chat icon and prefix for messages.
-* Dynamic limit system, with one permission for each limits defined in the configuration. If multiple permissions are granted to one player, only the maximum limit is applied.
+* Dynamic limit system, with one permission for each limits defined in the configuration. If multiple permissions are granted to one player, only the maximum limit is applied ('maybe', see below).
 * VIP limit will be taken if it's granted, over any other perm (even higher).
 * Team based limits, with configurable limits for each count of members
 
@@ -38,8 +38,8 @@ The roadmap of this plugin depends on your suggestions ! (I'll try to add your f
 Here is the description for an example configuration (not the default one) :
  - The default limit is 5 TC.
  - If the player is in a team with at least 2 and less than 4 members, the limit is 8 TCs for all the team. If there is at least 4 members, the limit is 16 for all the team. If the "Global Team Limit" were false, those limits would be per player.
- - Else If the player has the VIP permission, he will have a limit of 20 TC.
- - Else if the player have any of the limit_1, limit_2 or limit_3 permission, only the granted perm with the maximum amount will be applied (Can be less than the Default one **only** if the "Limit Others Can Downgrade Default" setting is **true**).
+ - But, if the player have any of the limit_1, limit_2 or limit_3 permission, only the granted perm with the maximum amount will be applied (Can be less than the Default one **only** if the "Limit Others Can Downgrade Default" setting is **true**).
+ - But, If the player has the VIP permission, he will have a limit of 20 TC.
 
 Corresponding to the following JSON file:
 ```json
