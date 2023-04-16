@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.7.3")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.7.4")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
