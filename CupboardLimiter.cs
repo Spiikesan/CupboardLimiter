@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.7.4")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.7.5")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -376,9 +376,10 @@ namespace Oxide.Plugins
         {
             if (configData.Limits.GlobalTeamLimit)
             {
-                int limit = GetTCLimit(inviter);
+                int limit = GetTCLimit(inviter, true);
                 int teamTC = TCCount(inviter);
                 int targetTC = TCCount(target);
+
                 if (teamTC + targetTC > limit)
                 {
                     ChatMessage(inviter, FormatMessage(Message_TeamOvercount, inviter.UserIDString, (teamTC + targetTC) - limit));
@@ -514,15 +515,15 @@ namespace Oxide.Plugins
             if (itemToGive != null) player.inventory.GiveItem(itemToGive);
         }
 
-        public int GetTCLimit(BasePlayer player)
+        public int GetTCLimit(BasePlayer player, bool isInvite = false)
         {
             int limit = configData.Limits.DefaultLimit;
+            int tcount = player.Team.members.Count + (isInvite ? 1 : 0);
 
             if (debug) Puts($"{player}: Default limit {limit}");
 
-            if (configData.Limits.TeamLimits.Count > 0 && player.Team != null && player.Team.members.Count > 1)
+            if (configData.Limits.TeamLimits.Count > 0 && player.Team != null && tcount > 1)
             {
-                int tcount = player.Team.members.Count;
                 foreach (var tlim in configData.Limits.TeamLimits)
                 {
                     if (tlim.Key <= tcount)
