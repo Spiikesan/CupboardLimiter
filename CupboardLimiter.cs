@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.7.5")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.7.6")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -518,22 +518,26 @@ namespace Oxide.Plugins
         public int GetTCLimit(BasePlayer player, bool isInvite = false)
         {
             int limit = configData.Limits.DefaultLimit;
-            int tcount = player.Team.members.Count + (isInvite ? 1 : 0);
 
             if (debug) Puts($"{player}: Default limit {limit}");
 
-            if (configData.Limits.TeamLimits.Count > 0 && player.Team != null && tcount > 1)
+            if (configData.Limits.TeamLimits.Count > 0 && player.Team != null)
             {
-                foreach (var tlim in configData.Limits.TeamLimits)
+                int tcount = player.Team.members.Count + (isInvite ? 1 : 0);
+
+                if (tcount > 1)
                 {
-                    if (tlim.Key <= tcount)
-                        limit = tlim.Value;
-                    else
-                        break;
+                    foreach (var tlim in configData.Limits.TeamLimits)
+                    {
+                        if (tlim.Key <= tcount)
+                            limit = tlim.Value;
+                        else
+                            break;
+                    }
+                    if (debug) Puts($"{player}: Team limit {limit} for {tcount} players in the team");
                 }
-                if (debug) Puts($"{player}: Team limit {limit} for {tcount} players in the team");
             }
-            
+
             if (configData.Limits.OtherLimits.Count > 0)
             {
                 int olimit = -1;
