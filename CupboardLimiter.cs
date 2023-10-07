@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Cupboard Limiter", "Spiikesan", "1.7.6")]
+    [Info("Cupboard Limiter", "Spiikesan", "1.7.7")]
     [Description("Simplified version for cupboard limits")]
 
     public class CupboardLimiter : RustPlugin
@@ -398,43 +398,53 @@ namespace Oxide.Plugins
         [ChatCommand("tc")]
         private void ChatCommand_Inspect(BasePlayer player, string command, string[] args)
         {
-
-            ulong userID = player.userID;
+            ulong userID = 0;
+            string receiverId = string.Empty;
+            BasePlayer tcPlayer = player;
             bool isOwn = true;
-            string receiverId = player.UserIDString;
-            if (args.Length >= 1)
-            {
-                isOwn = false;
-                userID = 0;
-                if (permission.UserHasPermission(player.UserIDString, CommandList_Perm))
-                {
-                    var user = covalence.Players.FindPlayer(args[0]);
 
-                    if (user is IPlayer)
+            if (player != null)
+            {
+                userID = player?.userID ?? 0;
+
+                receiverId = player.UserIDString;
+                if (args.Length >= 1)
+                {
+                    isOwn = false;
+                    userID = 0;
+                    if (permission.UserHasPermission(player.UserIDString, CommandList_Perm))
                     {
-                        if (ulong.TryParse(user.Id, out userID))
+                        var user = covalence.Players.FindPlayer(args[0]);
+
+                        if (user != null && user is IPlayer)
                         {
-                            player = user.Object as BasePlayer;
+                            if (ulong.TryParse(user.Id, out userID))
+                            {
+                                tcPlayer = user.Object as BasePlayer;
+                            }
+                        }
+                        else
+                        {
+                            ChatMessage(player, FormatMessage(Message_InspectNotFound, player.UserIDString));
                         }
                     }
                     else
                     {
-                        ChatMessage(player, FormatMessage(Message_InspectNotFound, player.UserIDString));
+                        ChatMessage(player, FormatMessage(Message_NoPermission, player.UserIDString));
                     }
+                }
+                if (userID.IsSteamId() && tcPlayer != null)
+                {
+                    ChatMessage(player, PlayerTcsString(tcPlayer, receiverId, isOwn));
                 }
                 else
                 {
-                    ChatMessage(player, FormatMessage(Message_NoPermission, player.UserIDString));
+                    ChatMessage(player, FormatMessage(Message_Error, player.UserIDString));
                 }
-            }
-
-            if (player != null && userID.IsSteamId())
-            {
-                ChatMessage(player, PlayerTcsString(player, receiverId, isOwn));
             }
             else
             {
-                ChatMessage(player, FormatMessage(Message_Error, player.UserIDString));
+                Puts(Name + ": An error occured: player is null !");
             }
         }
         [ConsoleCommand("tc")]
@@ -584,16 +594,20 @@ namespace Oxide.Plugins
         private string PlayerTcsString(BasePlayer player, string receiverId, bool isOwn)
         {
             List<BuildingPrivlidge> tcs;
-            if (!TCIDs.TryGetValue(player.userID, out tcs))
-                tcs = new List<BuildingPrivlidge>();
-            tcs = tcs.FindAll(tc => !tc.IsDestroyed);
-            string msg = isOwn ? FormatMessage(Message_InspectOwn, receiverId, tcs.Count, GetTCLimit(player) - TCCount(player))
-                               : FormatMessage(Message_Inspect, receiverId, player.displayName, tcs.Count);
-            foreach (var TC in tcs)
+            if (player != null)
             {
-                msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
+                if (!TCIDs.TryGetValue(player.userID, out tcs))
+                    tcs = new List<BuildingPrivlidge>();
+                tcs = tcs.FindAll(tc => !tc.IsDestroyed);
+                string msg = isOwn ? FormatMessage(Message_InspectOwn, receiverId, tcs.Count, GetTCLimit(player) - TCCount(player))
+                                   : FormatMessage(Message_Inspect, receiverId, player.displayName, tcs.Count);
+                foreach (var TC in tcs)
+                {
+                    msg += "\n - Pos: " + GetCoordinates(TC.ServerPosition);
+                }
+                return msg;
             }
-            return msg;
+            return "";
         }
 
         private string GetCoordinates(Vector3 position)
